@@ -49,6 +49,7 @@ output:
     - Pie Charts
     
 ```{r, echo=FALSE, message=FALSE}
+library(UsingR)
 library("gridExtra")
 library("ggplot2")
 library("vcd")
@@ -57,8 +58,9 @@ library(visdat)
 library("purrr")
 library(dplyr)
 require(lattice)
-
 library(seriation)
+library(MASS)
+
 ```
 
   In the scope of presenting this basic type of data and how it can be represented, we chose the data set called "Virginia Death Rates in 1940" that represents the mortality rate based on sex, age and region (rural or urban area). 
@@ -1235,6 +1237,84 @@ vis_miss(date)
 Exista valori lipsa pentru mai multe variabile, dar cele mai multe se gasesc la variabila "meal.cal", urmata de variabila
 "wt.loss" si sunt putine observatii care au aceste valori lipsa pentru ambele variabile in acelasi timp
 Avem cate o valoare lipsa si pentru variabilele "inst, ph.ecog si ph.kamo", dar aceasta nu lipseste pentru aceeasi observatie
+
+<center>
+
+![](ExercitiiImagini/OutEx3.jpg)
+</center>
+Figure 9.7
+<center>
+![](ExercitiiImagini/Fig9.7.jpg)
+</center>
+Figure 9.8
+<center>
+![](ExercitiiImagini/Fig9.8.jpg)
+</center>
+
+
+Observam ca in fig 9.7 variabila "carat" prezinta foarte multi outlieri cu valori peste limita superioara,
+deci aceasta variabila este inclinata spre dreapta.
+Fig 9.8 evidentiaza prezenta outlierilor si modul in care graficul se schimba atunci cand este redimensionat.
+In prima parte, cand dimensiunea era mai mare, prezenta valorilor extreme foarte mari atrag atentia si acele 
+observatii par suspecte, pe cand, in a doua parte, valorile nu mai par foarte diferite unele de altele, facand ca
+graficul sa para un grafic obisnuit cu o variatie foarte mica a valorilor.
+Prezenta outlierilor atat pt varibila "carat" cat si pentru variabila "witdh" se poate explica prin faptul ca
+acest set de date contine foarte multe observatii si este normal sa existe si multe valori atipice. 
+<center>
+![](ExercitiiImagini/OutEx5.jpg)
+</center>
+```{r output.lines=4}
+
+
+data5<-galton
+
+boxplot(data5)
+
+```
+ 
+ a. Exista valori pe care le consideram outlieri pentru variabila "Inaltime parinti"
+ 
+ ```{r}
+ ggplot(data5, aes( parent,child)) + geom_point() + geom_density2d()
+ ```
+
+ b. Graficul densitatii bivariate arata faptul ca exista mai multi outlieri 
+ 
+ <center>
+![](ExercitiiImagini/OutEx8.jpg)
+</center>
+
+
+
+ Am putea considera outlieri cele 2 puncte din partea dreapta jos a graficului deoarece acestea sunt departe de
+celelalte puncte ale graficului si se observa si o distanta considerabila intre ele.
+
+ <center>
+![](ExercitiiImagini/OutEx10.jpg)
+</center>
+
+```{r}
+
+Boston
+attach(Boston)
+View(Boston)
+boxplot(Boston$tax)
+boxplot.stats(Boston$tax)
+hist(Boston$tax)
+
+```
+
+Mai util este boxplotul deoarece arata clar daca avem sau nu outlieri. Histograma arata faptul ca ar exista siniste valori mai mari, dar acestea nu sunt considerate ca fiind outlieri, deci ne poate induce in eroare.
+
+```{r}
+
+
+#names(Boston) <- c("crim", "zn", "indus", #"chas","nox","rm","age","dis","rad","tax","ptratio","black",
+#                 "lstat", "medv")
+#ggparcoord(data = Boston, columns = c(1:14), scale="uniminmax") + xlab("") + ylab("")
+
+
+```
 ### Va multumim
 
 
