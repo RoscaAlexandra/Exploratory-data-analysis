@@ -57,6 +57,8 @@ library(visdat)
 library("purrr")
 library(dplyr)
 require(lattice)
+
+library(seriation)
 ```
 
   In the scope of presenting this basic type of data and how it can be represented, we chose the data set called "Virginia Death Rates in 1940" that represents the mortality rate based on sex, age and region (rural or urban area). 
