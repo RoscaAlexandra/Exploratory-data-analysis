@@ -5,48 +5,140 @@ output:
   html_document:
     df_print: paged
 ---
-{r setup, include = FALSE, echo=FALSE}
-knitr::opts_chunk$set(include = TRUE, echo = TRUE)
+
+    EDA is not a formal process with a strict set of rules. More than anything, EDA is a state of mind. During the initial phases of EDA you should feel free to investigate every idea that occurs to you. Some of these ideas will pan out, and some will be dead ends. As your exploration continues, you will home in on a few particularly productive areas that you’ll eventually write up and communicate to others.
+
+    EDA is an important part of any data analysis, even if the questions are handed to you on a platter, because you always need to investigate the quality of your data. Data cleaning is just one application of EDA: you ask questions about whether your data meets your expectations or not. To do data cleaning, you’ll need to deploy all the tools of EDA:visualisation, transformation, and modelling.
+
+    EDA is an iterative cycle. You:
+    - Generate questions about your data.
+    - Search for answers by visualising, transforming, and modelling your data.
+    - Use what you learn to refine your questions and/or generate new questions.
 
 
 ## Structure
 
-*1. Categorical Data*
+### 1. Categorical Data
 
-a)  Univariate
+####        a) Univariate analysis
 
-b) Multivariate
-
-
-*2.Valori Lipsa*
+####        b) Multivariate analysis
 
 
-
-*3. Outlieri*
+### 2. Missing values
 
 
 
+### 3. Outliers
 
-## R Markdown
+***
 
-This is an R Markdown presentation. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
-
-When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document.
-
-## Slide with Bullets
-
-- Bullet 1
-- Bullet 2
-- Bullet 3
-
-## Slide with R Output
-
-{r cars, echo = TRUE}
-summary(cars)
+## 1. Categorical Data
 
 
-## Slide with Plot
+#### a) Univariate analysis
+***
 
-{r pressure}
-plot(pressure)
+  _Univariate analysis_ is the simplest form of analyzing data. “Uni” means “one”, so in other words your data has only one variable. It doesn’t deal with causes or relationships and it’s major purpose is to describe; It takes data, summarizes that data and finds patterns in the data.
+  You have several options for describing data with univariate data. E.g.:
+    - Frequency Distribution Tables
+    - Bar Charts
+    - Pie Charts
+```{r, echo=FALSE, message=FALSE}
+library("gridExtra")
+library("ggplot2")
+library("vcd")
+library("vcdExtra")
+require(lattice)
 ```
+
+  In the scope of presenting this basic type of data and how it can be represented, we chose the data set called "Virginia Death Rates in 1940" that represents the mortality rate based on sex, age and region (rural or urban area). 
+  We separated each category and analised the graphic results. 
+  
+```{r, message=FALSE}
+VADeathRate <- as.data.frame.table(VADeaths)
+
+#Grouping data based on age
+
+ageGrouping <- aggregate(VADeathRate$Freq, by=list(Age=VADeathRate$Var1), FUN=mean)
+
+#Grouping data based on category
+
+catGrouping <- aggregate(VADeathRate$Freq, by=list(Category=VADeathRate$Var2), FUN=mean)
+
+#Grouping data based on region
+
+type1Grouping <- aggregate(VADeathRate$Freq, by=list(gender=VADeathRate$Var2), FUN=mean)
+type1Grouping$Place <- c("Rural", "Rural", "Urban", "Urban")
+placeGrouping <- aggregate(type1Grouping$x, by=list(Place=type1Grouping$Place), FUN=mean)
+
+```
+  
+```{r, message=FALSE}
+#Plotting different results
+
+p1 <- ggplot(placeGrouping, aes(Place, x, fill=Place, width=x*0.01)) +
+  
+  geom_bar(stat="identity") +
+  ylab("Death rate")
+
+p2 <- ggplot(ageGrouping, aes(Age, x, fill = Age)) +
+  
+  geom_bar(stat="identity") +
+  ylab("Death rate")
+
+
+
+p3 <- ggplot(catGrouping, aes(Category, x, fill=Category, width=x*0.02)) +
+  geom_bar(stat="identity") +
+  geom_col(position = "dodge") +
+  ylab("Death rate")
+
+
+grid.arrange(p1, p2, p3)
+
+```
+```{r}
+#incoming pie chart
+
+```
+
+  
+  
+***
+#### b) Multivariate analysis
+
+  Multivariate analysis (MVA) is based on the principles of multivariate statistics, which involves observation and analysis of more than one statistical outcome variable at a time. Typically, MVA is used to address the situations where multiple measurements are made on each experimental unit and the relations among these measurements and their structures are important.
+
+
+  For our first analisys, we chose a dataset that represents a University of California admission study. 
+  
+  
+```{r}
+uniAdmission <- as.data.frame.table(UCBAdmissions)
+
+#Admission depending on gender
+doubledecker(Admit ~ Gender, data = UCBAdmissions,
+             gp = gpar(fill = c("#0caa00","#c70b00")))
+#Admission depending on dept
+doubledecker(Admit ~ Dept, data = UCBAdmissions,
+             gp = gpar(fill = c("#0caa00","#c70b00")))
+#Admission depending on dept and gender
+doubledecker(Admit ~ Dept + Gender, data = UCBAdmissions, gp = gpar(fill = c("#0caa00","#c70b00")))
+```
+
+  Mosaic plots represent another possible graphic representation of multivariate variables. 
+  Since the "Virginia Deathrates" actually represents a multivariate dataset (age, sex and area are interdependent), we studied it even deeper exploiting the categories and using mosaics.
+
+```{r}
+#Death rates mosaics
+addedCols <- VADeathRate
+addedCols$Place <- c("Rural", "Rural", "Rural", "Rural", "Rural", "Rural", "Rural", "Rural", "Rural", "Rural", "Urban", "Urban", "Urban", "Urban", "Urban", "Urban", "Urban", "Urban", "Urban", "Urban")
+addedCols$Sex <- c("Male", "Male", "Male", "Male", "Male", "Female", "Female", "Female", "Female", "Female", "Male", "Male", "Male", "Male", "Male", "Female", "Female", "Female", "Female", "Female")
+par(mfrow=c(1,3))
+m1 <- mosaicplot(xtabs(Freq ~ Sex, data=addedCols), main="", color = "#0c9cac", border = "black")
+m2 <- mosaicplot(xtabs(Freq ~ Sex + Var1, data=addedCols),main="", color = "#0c9cac", border = "black")
+m3 <- mosaicplot(xtabs(Freq ~ Sex + Var1 + Place, data=addedCols),main="", color = "#0c9cac", border = "black")
+
+```
+
