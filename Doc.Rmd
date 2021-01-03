@@ -137,7 +137,7 @@ mtext("Pie representation of Virginia Death Rates", outer = TRUE, cex = 1.01)
   Multivariate analysis (MVA) is based on the principles of multivariate statistics, which involves observation and analysis of more than one statistical outcome variable at a time. Typically, MVA is used to address the situations where multiple measurements are made on each experimental unit and the relations among these measurements and their structures are important.
 
 ##### Doubledeckers
-  For our first analisys, we chose a dataset that represents a University of California admission study. 
+  For our first analysis, we chose a dataset that represents a UC Berkeley admission study. 
   
   
 ```{r}
