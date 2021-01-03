@@ -49,6 +49,7 @@ library("gridExtra")
 library("ggplot2")
 library("vcd")
 library("vcdExtra")
+library(visdat)
 require(lattice)
 ```
 
@@ -141,4 +142,187 @@ m2 <- mosaicplot(xtabs(Freq ~ Sex + Var1, data=addedCols),main="", color = "#0c9
 m3 <- mosaicplot(xtabs(Freq ~ Sex + Var1 + Place, data=addedCols),main="", color = "#0c9cac", border = "black")
 
 ```
+
+
+### 2. Missing values and Outliers
+### Missing
+***
+  Missing data (or missing values) is defined as the data value that is not stored for a variable in the observation of interest. The problem of missing data is relatively common in almost all research and can have a significant effect on the conclusions that can be drawn from the data. Accordingly, some studies have focused on handling the missing data, problems caused by missing data, and the methods to avoid or minimize such in medical research.
+
+   However, until recently, most researchers have drawn conclusions based on the assumption of a complete data set. The general topic of missing data has attracted little attention in the field of anesthesiology.
+
+   Missing data present various problems. First, the absence of data reduces statistical power, which refers to the probability that the test will reject the null hypothesis when it is false. Second, the lost data can cause bias in the estimation of parameters. Third, it can reduce the representativeness of the samples. Fourth, it may complicate the analysis of the study. Each of these distortions may threaten the validity of the trials and can lead to invalid conclusions.
+   
+   In aceasta parte a proiectului am construit un set de date in care este reprezentat PIB-ul pe fiecare Tara, investitia in sanatate si educatie respectiv HDI, iar tarile sunt impartite pe continent.
+   
+   Urmatorul cod ne permite incarcarea datelor 
+   
+```{r}
+   data<-read.csv("data.csv",header=TRUE)
+date<-data.frame(Indicator=data$Series.Code,
+                 Tara=data$Country.Name,
+                 Valoare=data$X2015..YR2015.
+                 )
+                 
+Continent<-data$Continent
+HDI<- data$HDI
+date<-reshape(date,idvar="Tara",timevar = "Indicator",direction="wide")
+date<-data.frame(Tara=date$Tara,
+                 PIBperCapita=date$Valoare.NY.GDP.PCAP.PP.CD,
+                 CheltEducatie=date$Valoare.SE.XPD.TOTL.GD.ZS,
+                 CO2perCapita=date$Valoare.EN.ATM.CO2E.PC,
+                 CheltSanatate=date$Valoare.SH.XPD.GHED.GD.ZS
+                 )
+date<-data.frame(date,Continent)
+date<-data.frame(date,HDI)               
+   
+```
+   
+   Am prelucrat datele introduse deoarece contine valori nule si valori aberante, inlocuindule cu  valoarea lipsa.
+```{r}
+   for( i in 1:nrow(date)){
+  for(j in 1:ncol(date)){
+    if(date[i,j]==""||date[i,j]==".."){
+      date[i,j]<-NA
+    }
+  }
+}
+```
+   In cele ce urmeaza vom verifica numarul de valori lipsa si vim afisa un grafic pentru a ne da seama cat de mult influenteaza pentru statistica finala.
+   
+```{r}
+vis_miss(date)
+```
+
+Din grafic se observa o lipsa a detelor de 12% dintre care 48 % sunt cheltuielile folosite pentru educatie, ceea ce ce in final la o statistia a raportului de cheltuieli educatie si chelutieli sanatate ar duce la o discrepanta foarte mare, asadar le vom elimina folosind functia _na.omit()_. 
+ 
+```{r}
+date<-na.omit(date)
+vis_miss(date)
+```
+
+### Outliers
+***
+
+An outlier is an observation that lies an abnormal distance from other values in a random sample from a population. In a sense, this definition leaves it up to the analyst (or a consensus process) to decide what will be considered abnormal.
+
+Before abnormal observations can be singled out, it is necessary to characterize normal observations.
+
+Two activities are essential for characterizing a set of data:
+
+1. Examination of the overall shape of the graphed data for important features, including symmetry and departures from assumptions. The chapter on Exploratory Data Analysis (EDA) discusses assumptions and summarization of data in detail.
+
+2. Examination of the data for unusual observations that are far removed from the mass of data. These points are often referred to as outliers. Two graphical techniques for identifying outliers, scatter plots and box plots, along with an analytic procedure for detecting outliers when the distribution is normal (Grubbs' Test), are also discussed in detail in the EDA chapter.
+
+
+Pentru a putea folosi datele trebuie sa le transformate in valori numerice pentru a putea fi scalate
+```{r}
+date$CO2perCapita<-as.numeric(date$CO2perCapita)
+date$HDI<-as.numeric(date$HDI)
+date$CheltEducatie<-as.numeric(date$CheltEducatie)
+date$CheltSanatate<-as.numeric(date$CheltSanatate)
+date$PIBperCapita<-as.numeric(date$PIBperCapita)
+```
+
+Pentru prima parte dorim sa verificam daca exista Outliers pentru PIB pentru toate tarile.
+
+***
+Pentru a determina eventualele valori Outliers vom folosi Box plot construction.
+
+The box plot is a useful graphical display for describing the behavior of the data in the middle as well as at the ends of the distributions. The box plot uses the median and the lower and upper quartiles (defined as the 25th and 75th percentiles). If the lower quartile is Q1 and the upper quartile is Q3, then the difference (Q3 - Q1) is called the interquartile range or IQ.
+
+A box plot is constructed by drawing a box between the upper and lower quartiles with a solid line drawn across the box to locate the median. The following quantities (called fences) are needed for identifying extreme values in the tails of the distribution:
+
+  a. lower inner fence: Q1 - 1.5*IQ
+  b. upper inner fence: Q3 + 1.5*IQ
+  c. lower outer fence: Q1 - 3*IQ
+  d. upper outer fence: Q3 + 3*IQ
+
+Outlier detection criteria:
+
+1. A point beyond an inner fence on either side is considered a mild outlier. 
+2. A point beyond an outer fence is considered an extreme outlier.
+
+***
+
+Ne dorim sa facem o statisca asupra PIB-ului, si dorim sa aflam eventualele valori extreme.
+```{r}
+ggplot(date, aes("PIB all Continent", y=PIBperCapita)) +
+  xlab("") + geom_boxplot() +
+  scale_x_discrete(breaks=NULL)
+
+```
+
+Se observa 2 valori extreme aporximativ 7000 respectiv 10000 momentan nu putem spune daca influenteaza sau nu. Vom incercasa sa ne dam seama de influenta acestor valori comparand cu PIB-urile pe fiecare continent.
+
+```{r}
+all <- ggplot(date, aes("PIB all Continent", y=PIBperCapita)) +
+  xlab("") + geom_boxplot() +
+  scale_x_discrete(breaks=NULL)
+
+continent1<-ggplot(date, aes(x=Continent, y=PIBperCapita)) +
+  geom_boxplot() + xlab("") 
+grid.arrange(all,continent1, nrow=1,widths=c(1,2))
+
+```
+
+Din graficul anterios putem observa ca punctele extreme provin de pe continentul Europa, iar  Outliers provenite din Africa nu influenteaza statistica finala deoarce sunt cuprinse de celelalte contine, de unde putem deduce usor ca Africa este un continent sarac.
+
+Dorim acum sa vedem cand se investe din PIB in educatie respectiv sanatate.
+
+```{r}
+educatie <- ggplot(date, aes(y=CheltEducatie, x=Continent)) +
+  xlab("") + geom_boxplot() +
+  scale_y_discrete(breaks=NULL)
+
+sanatate <- ggplot(date, aes(y=CheltSanatate, x=Continent)) +
+  xlab("") + geom_boxplot() +
+  scale_y_discrete(breaks=NULL)
+grid.arrange(educatie,sanatate)
+
+
+
+```
+
+Se observa ca America de Sud investeste in mod egal si in eduatie si sanatate, iar pe continetul Asia exista un Outlier pentru cheluielile pe Sanatete de unde putem deduce ca exista un numar finit si da tari care investesc mai mult in sanatete fata de celelalte.
+
+Nu vom elimina nici acest Outlier, deoarce este si e el cuprins de media celorlalte continente.
+
+
+In final pentru a vedea investitia in sanatate respectiv educate din PIB pentru fiecare Tara  vom afisa 2 grafice. Primul ne masoara in functie de PIB pentru fiecare tara, iar cel de al doilea ne afiseaza raportul tarilor pentru fiecare continent. Se observa ca majoritatea tarilol investec in mod egal atat in sanatate cat si in educatie.
+
+
+```{r}
+ggplot(date)+aes(x=CheltSanatate,y=CheltEducatie ,colour=PIBperCapita )+geom_point()
+
+```
+```{r}
+ggplot(data=date)+ aes(x=CheltSanatate,y=CheltEducatie,colour=Continent) + geom_point() +
+  geom_density2d(bins=5, col="red")
+
+```
+
+### Exercitii
+
+1). 
+<center>
+![](ExercitiiImagini/OutEx1.jpg)
+</center>
+
+```{r}
+library(survival)
+date<-lung
+date
+View(date)
+
+vis_miss(date)
+
+```
+
+Exista valori lipsa pentru mai multe variabile, dar cele mai multe se gasesc la variabila "meal.cal", urmata de variabila
+"wt.loss" si sunt putine observatii care au aceste valori lipsa pentru ambele variabile in acelasi timp
+Avem cate o valoare lipsa si pentru variabilele "inst, ph.ecog si ph.kamo", dar aceasta nu lipseste pentru aceeasi observatie
+### Va multumim
+
+
 
