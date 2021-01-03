@@ -28,11 +28,11 @@ output:
 ####        	&#32;  	&#32;  b) Multivariate analysis
 
 
-### 2. Missing values
+### 2. Missing values and Outliers
 
 
 
-### 3. Outliers
+
 
 ***
 

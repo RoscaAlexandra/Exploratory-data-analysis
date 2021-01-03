@@ -1,0 +1,260 @@
+---
+title: "PresentationProject"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+```{r cars}
+summary(cars)
+```
+
+## Including Plots
+
+You can also embed plots, for example:
+
+```{r pressure, echo=FALSE}
+plot(pressure)
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+    
+```{r, echo=FALSE, message=FALSE}
+library(UsingR)
+library("gridExtra")
+library("ggplot2")
+library("vcd")
+library("vcdExtra")
+library(visdat)
+library("purrr")
+library(dplyr)
+require(lattice)
+library(seriation)
+library(MASS)
+
+```
+
+
+### 2. Missing values and Outliers
+### Missing
+***
+ 
+   
+   In aceasta parte a proiectului am construit un set de date in care este reprezentat PIB-ul pe fiecare Tara, investitia in sanatate si educatie respectiv HDI, iar tarile sunt impartite pe continente.
+   
+   Urmatorul cod ne permite incarcarea datelor 
+   
+```{r}
+   data<-read.csv("data.csv",header=TRUE)
+date<-data.frame(Indicator=data$Series.Code,
+                 Tara=data$Country.Name,
+                 Valoare=data$X2015..YR2015.
+                 )
+                 
+Continent<-data$Continent
+HDI<- data$HDI
+date<-reshape(date,idvar="Tara",timevar = "Indicator",direction="wide")
+date<-data.frame(Tara=date$Tara,
+                 PIBperCapita=date$Valoare.NY.GDP.PCAP.PP.CD,
+                 CheltEducatie=date$Valoare.SE.XPD.TOTL.GD.ZS,
+                 CO2perCapita=date$Valoare.EN.ATM.CO2E.PC,
+                 CheltSanatate=date$Valoare.SH.XPD.GHED.GD.ZS
+                 )
+date<-data.frame(date,Continent)
+date<-data.frame(date,HDI)               
+   
+```
+   
+   Am prelucrat datele introduse deoarece contine valori nule si valori aberante, inlocuindule cu  valoarea lipsa.
+```{r}
+   for( i in 1:nrow(date)){
+  for(j in 1:ncol(date)){
+    if(date[i,j]==""||date[i,j]==".."){
+      date[i,j]<-NA
+    }
+  }
+}
+```
+   Functia Care verifica valorile lipsa
+```{r}
+vis_miss(date)
+```
+
+ Elimina valorile lipsa folosind functia _na.omit()_. 
+ 
+```{r}
+date<-na.omit(date)
+vis_miss(date)
+```
+
+### Outliers
+***
+
+Transformam datele in valori numerice pentru a putea fi scalate
+```{r}
+date$CO2perCapita<-as.numeric(date$CO2perCapita)
+date$HDI<-as.numeric(date$HDI)
+date$CheltEducatie<-as.numeric(date$CheltEducatie)
+date$CheltSanatate<-as.numeric(date$CheltSanatate)
+date$PIBperCapita<-as.numeric(date$PIBperCapita)
+```
+
+Pentru prima parte dorim sa verificam daca exista Outliers pentru PIB pentru toate tarile.
+
+Afisam box plot pentru PIB pe toate tarile
+```{r}
+ggplot(date, aes("PIB all Continent", y=PIBperCapita)) +
+  xlab("") + geom_boxplot() +
+  scale_x_discrete(breaks=NULL)
+
+```
+
+Comparam pibul pe fiecare continent cu pib-ul general folosind functia _grid.arrange()_
+
+.
+
+```{r}
+all <- ggplot(date, aes("PIB all Continent", y=PIBperCapita)) +
+  xlab("") + geom_boxplot() +
+  scale_x_discrete(breaks=NULL)
+
+continent1<-ggplot(date, aes(x=Continent, y=PIBperCapita)) +
+  geom_boxplot() + xlab("") 
+grid.arrange(all,continent1, nrow=1,widths=c(1,2))
+
+```
+
+
+Analizam raportul cheluieli pentru sanatate si cheltuieli pentru educatia 
+
+```{r}
+educatie <- ggplot(date, aes(y=CheltEducatie, x=Continent)) +
+  xlab("") + geom_boxplot() +
+  scale_y_discrete(breaks=NULL)
+
+sanatate <- ggplot(date, aes(y=CheltSanatate, x=Continent)) +
+  xlab("") + geom_boxplot() +
+  scale_y_discrete(breaks=NULL)
+grid.arrange(educatie,sanatate)
+
+
+
+```
+
+In final pentru a vedea investitia in sanatate respectiv educate din PIB pentru fiecare Tara  vom afisa 2 grafice. Primul ne masoara in functie de PIB pentru fiecare tara, iar cel de al doilea ne afiseaza raportul tarilor pentru fiecare continent. Se observa ca majoritatea tarilol investec in mod egal atat in sanatate cat si in educatie.
+
+
+```{r}
+ggplot(date)+aes(x=CheltSanatate,y=CheltEducatie ,colour=PIBperCapita )+geom_point()
+
+```
+```{r}
+ggplot(data=date)+ aes(x=CheltSanatate,y=CheltEducatie,colour=Continent) + geom_point() +
+  geom_density2d(bins=5, col="red")
+
+```
+1). 
+<center>
+![](ExercitiiImagini/OutEx1.jpg)
+</center>
+
+```{r}
+library(survival)
+date<-lung
+
+
+vis_miss(date)
+
+```
+
+Exista valori lipsa pentru mai multe variabile, dar cele mai multe se gasesc la variabila "meal.cal", urmata de variabila
+"wt.loss" si sunt putine observatii care au aceste valori lipsa pentru ambele variabile in acelasi timp
+Avem cate o valoare lipsa si pentru variabilele "inst, ph.ecog si ph.kamo", dar aceasta nu lipseste pentru aceeasi observatie
+
+<center>
+
+![](ExercitiiImagini/OutEx3.jpg)
+</center>
+Figure 9.7
+<center>
+![](ExercitiiImagini/Fig9.7.jpg)
+</center>
+Figure 9.8
+<center>
+![](ExercitiiImagini/Fig9.8.jpg)
+</center>
+
+
+Observam ca in fig 9.7 variabila "carat" prezinta foarte multi outlieri cu valori peste limita superioara,
+deci aceasta variabila este inclinata spre dreapta.
+Fig 9.8 evidentiaza prezenta outlierilor si modul in care graficul se schimba atunci cand este redimensionat.
+In prima parte, cand dimensiunea era mai mare, prezenta valorilor extreme foarte mari atrag atentia si acele 
+observatii par suspecte, pe cand, in a doua parte, valorile nu mai par foarte diferite unele de altele, facand ca
+graficul sa para un grafic obisnuit cu o variatie foarte mica a valorilor.
+Prezenta outlierilor atat pt varibila "carat" cat si pentru variabila "witdh" se poate explica prin faptul ca
+acest set de date contine foarte multe observatii si este normal sa existe si multe valori atipice. 
+<center>
+![](ExercitiiImagini/OutEx5.jpg)
+</center>
+```{r output.lines=4}
+
+
+data5<-galton
+
+boxplot(data5)
+
+```
+ 
+ a. Exista valori pe care le consideram outlieri pentru variabila "Inaltime parinti"
+ 
+ ```{r}
+ ggplot(data5, aes( parent,child)) + geom_point() + geom_density2d()
+ ```
+
+ b. Graficul densitatii bivariate arata faptul ca exista mai multi outlieri 
+ 
+ <center>
+![](ExercitiiImagini/OutEx8.jpg)
+</center>
+
+
+
+ Am putea considera outlieri cele 2 puncte din partea dreapta jos a graficului deoarece acestea sunt departe de
+celelalte puncte ale graficului si se observa si o distanta considerabila intre ele.
+
+ <center>
+![](ExercitiiImagini/OutEx10.jpg)
+</center>
+
+```{r}
+
+
+attach(Boston)
+
+boxplot(Boston$tax)
+boxplot.stats(Boston$tax)
+hist(Boston$tax)
+
+```
+
+Mai util este boxplotul deoarece arata clar daca avem sau nu outlieri. Histograma arata faptul ca ar exista siniste valori mai mari, dar acestea nu sunt considerate ca fiind outlieri, deci ne poate induce in eroare.
+
+```{r}
+
+
+#names(Boston) <- c("crim", "zn", "indus", #"chas","nox","rm","age","dis","rad","tax","ptratio","black",
+#                 "lstat", "medv")
+#ggparcoord(data = Boston, columns = c(1:14), scale="uniminmax") + xlab("") + ylab("")
+
+
+```
+
+
