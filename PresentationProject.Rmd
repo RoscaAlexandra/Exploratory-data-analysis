@@ -1,117 +1,94 @@
-data(VADeaths)
-install.packages("gridExtra")
-install.packages("ggplot2")
-install.packages("vcd")
-install.packages("vcdExtra")
-install.packages("seriation")
-install.packages("Select")
-install.packages('purrr')
-install.packages("TSP")
-install.packages("visdat")
-install.packages("UsingR")
+---
+title: 'Exploratory Data Analysis (EDA): Categorical Data & Quality Control'
+output:
+  html_document:
+    df_print: paged
+---
+
+### 1. Categorical Data
+
+####        	&#32;  	&#32;  a) Univariate analysis
+
+####        	&#32;  	&#32;  b) Multivariate analysis
+
+
+### 2. Missing values and Outliers
+
+
+
+
+***
+```{r, message=FALSE, echo=FALSE}
+library(UsingR)
 library("gridExtra")
 library("ggplot2")
 library("vcd")
 library("vcdExtra")
-library("TSP")
-library("extracat")
+library(visdat)
+library("purrr")
+library(dplyr)
+require(lattice)
+library(seriation)
+library(MASS)
+```
+
+## 1. Categorical Data
 
 
-##########
-#univariables
-require(lattice) 
+#### a) Univariate analysis
+***
 
+  _Univariate analysis_ is the simplest form of analyzing data. “Uni” means “one”, so in other words your data has only one variable. It doesn’t deal with causes or relationships and it’s major purpose is to describe; It takes data, summarizes that data and finds patterns in the data.
+  
+  
+```{r, message=FALSE}
 VADeathRate <- as.data.frame.table(VADeaths)
-#VADeathRate$Var1 <- sum(VADeathRate$Var1, VADeathRate$Var2)
-#aggregate(VADeathRate$points, by=list(Players=x$Players), FUN=mean)
+knitr::kable(VADeathRate, format="markdown")
+
+#Grouping data based on age
 
 ageGrouping <- aggregate(VADeathRate$Freq, by=list(Age=VADeathRate$Var1), FUN=mean)
+
+#Grouping data based on category
+
 catGrouping <- aggregate(VADeathRate$Freq, by=list(Category=VADeathRate$Var2), FUN=mean)
+
+#Grouping data based on region
+
 type1Grouping <- aggregate(VADeathRate$Freq, by=list(gender=VADeathRate$Var2), FUN=mean)
 type1Grouping$Place <- c("Rural", "Rural", "Urban", "Urban")
-
 placeGrouping <- aggregate(type1Grouping$x, by=list(Place=type1Grouping$Place), FUN=mean)
 
-hist1 <- ggplot(placeGrouping, aes(Place, x, fill=Place, width=x*0.01)) +
+#Plotting different results
+
+p1 <- ggplot(placeGrouping, aes(Place, x, fill=Place, width=x*0.01)) +
   
   geom_bar(stat="identity") +
   ylab("Death rate")
 
-hist2 <- ggplot(ageGrouping, aes(Age, x, fill = Age)) +
+p2 <- ggplot(ageGrouping, aes(Age, x, fill = Age)) +
   
   geom_bar(stat="identity") +
   ylab("Death rate")
 
 
 
-hist3 <- ggplot(catGrouping, aes(Category, x, fill=Category, width=x*0.02)) +
+p3 <- ggplot(catGrouping, aes(Category, x, fill=Category, width=x*0.02)) +
   geom_bar(stat="identity") +
   geom_col(position = "dodge") +
   ylab("Death rate")
 
+grid.arrange(p1, p2, p3, top = "Bar chart representation of Virginia Death Rates")
 
-grid.arrange(hist1, hist2, hist3)
+```  
 
-#pies
-Party <- c("Fine Gael", "Labour", "Fianna Fail",
-           "Sinn Fein", "Indeps", "Green", "Don’t know")
-nos <- c(181, 51, 171, 119, 91, 4, 368)
-IrOP <- data.frame(Party, nos)
-IrOP <- within(IrOP, {
-  percwith <- nos/sum(nos)
-  percnot <- nos/sum(nos[-7])})
-par(mfrow=c(2,1), mar = c(2.1, 2.1, 2.1, 2.1))
-with(IrOP, pie(percwith, labels=Party, clockwise=TRUE,
-               col=c("blue", "red", "darkgreen", "black",
-                     "grey", "lightgreen", "white"), radius=1))
-with(IrOP, pie(percnot[-7], labels=Party, clockwise=TRUE,
-               col=c("blue", "red", "darkgreen", "black",
-                     "grey", "lightgreen"), radius=1))
+***
 
-par(mfrow=c(4,1),oma = c(0, 0, 2, 0))
-with(placeGrouping, pie(x, labels=Place, clockwise=TRUE,
-                        col=rainbow(2), radius=1))
-with(ageGrouping, pie(x, labels=Age, clockwise=TRUE,
-                      col=rainbow(5), radius=1))
-with(catGrouping, pie(x, labels=Category, clockwise=TRUE,
-                      col=rainbow(4), radius=1))
-mtext("Title for Two Plots", outer = TRUE, cex = 1.5)
+#### b) Multivariate analysis
 
-#simple table
-with(VADeathRate, table(Freq))
-View(VADeathRate)
-####
-#multivariables
-#library(help = "datasets")
-#UCBAdmissions
-uniAdmission <- as.data.frame.table(UCBAdmissions)
-
-#Admission depending on gender
-doubledecker(Admit ~ Gender, data = UCBAdmissions,
-             gp = gpar(fill = c("#0caa00","#c70b00")))
-#Admission depending on dept
-doubledecker(Admit ~ Dept, data = UCBAdmissions,
-             gp = gpar(fill = c("#0caa00","#c70b00")))
-#Admission depending on dept and gender
-doubledecker(Admit ~ Dept + Gender, data = UCBAdmissions, gp = gpar(fill = c("#0caa00","#c70b00")))
-
-#Death rates mosaics
-addedCols <- VADeathRate
-addedCols$Place <- c("Rural", "Rural", "Rural", "Rural", "Rural", "Rural", "Rural", "Rural", "Rural", "Rural", "Urban", "Urban", "Urban", "Urban", "Urban", "Urban", "Urban", "Urban", "Urban", "Urban")
-addedCols$Sex <- c("Male", "Male", "Male", "Male", "Male", "Female", "Female", "Female", "Female", "Female", "Male", "Male", "Male", "Male", "Male", "Female", "Female", "Female", "Female", "Female")
-par(mfrow=c(1,3))
-m1 <- mosaicplot(xtabs(Freq ~ Sex, data=addedCols), main="", color = "#0c9cac", border = "black")
-m2 <- mosaicplot(xtabs(Freq ~ Sex + Var1, data=addedCols),main="", color = "#0c9cac", border = "black")
-m3 <- mosaicplot(xtabs(Freq ~ Sex + Var1 + Place, data=addedCols),main="", color = "#0c9cac", border = "black")
-
-
-
-library("purrr")
-library(dplyr)
-
-mosaic(table(select(Zoo, c(hair, eggs:backbone))))
-
-
+  Multivariate analysis (MVA) is based on the principles of multivariate statistics, which involves observation and analysis of more than one statistical outcome variable at a time. Typically, MVA is used to address the situations where multiple measurements are made on each experimental unit and the relations among these measurements and their structures are important.
+ 
+```{r, echo=FALSE, message=FALSE}
 fluctile <- function(tab, dir = "b", just = "c", hsplit = FALSE,shape ="r", gap.prop = 0.1,border = NULL, label = TRUE, lab.opt = list(), add = FALSE, maxv = NULL, tile.col = hsv(0.1,0.1,0.1,alpha=0.6), bg.col = ifelse(add,NA,"lightgrey"), tile.border = NA, vp = NULL,  ...  ){
   #tab <- t(tab)
   dm <- dim(tab)
@@ -981,206 +958,328 @@ cfluctile <- function(x, tau0 = NULL, method="Kendall", nsplit = NULL, maxsplit 
   return(invisible(ret))
 }
 
+``` 
+```{r}
+uniAdmission <- as.data.frame.table(UCBAdmissions)
+#Admission depending on dept and gender
+doubledecker(Admit ~ Dept + Gender, data = UCBAdmissions, margins = c(0,6, 3, 0), keep_aspect_ratio = TRUE, gp = gpar(fill = c("#0caa00","#c70b00")))
 
-
-# fluctile3d = function(x, shape = "cube", col = "darkgrey", col.array = NULL, alpha = 0.8, add = FALSE, lab = TRUE, ...){
-# if(!"rgl" %in% .packages(all.available = TRUE)){
-# cat("Please install the package 'rgl' to run this function")
-# return(invisible(TRUE))
-# }
-
-# check <- tryCatch(require(rgl), error = function(e) FALSE)
-# if(!check){ 
-# cat("Problems with package 'rgl' occured...")
-# return(invisible(TRUE))
-# }
-# if(shape %in% c("o","oct","octahedron")){
-# shape <- "octagon"
-# }
-# if(!is.data.frame(x)){
-# x2 <- subtable(as.data.frame(as.table(x)),1:3)	
-# dim <- dim(x)
-# }else{
-# x2 <- subtable(x,1:3)
-# dim <- sapply(x,nlevels)[1:3]	
-# }
-# maxfreq <- max(x2$Freq)
-# lvls <- lapply(x2, levels)
-# x2 <- sapply(x2, as.integer)
-
-# if(is.null(col.array)){
-# col.array <- array(col,dim=dim)	
-# }
-
-
-# #MX <- identityMatrix()
-# MX <- matrix(0,ncol=4,nrow=4)
-# diag(MX) <- 1
-# if(!add){
-# open3d()
-
-# wire3d( translate3d( cube3d( trans = scaleMatrix(dim[1]/2,dim[2]/2,dim[3]/2)), (dim[1]+1)/2,(dim[2]+1)/2,(dim[3]+1)/2)) 
-# dot3d( translate3d( cube3d( trans = scaleMatrix(dim[1]/2,dim[2]/2,dim[3]/2)), (dim[1]+1)/2,(dim[2]+1)/2,(dim[3]+1)/2))
-
-# if(lab){
-# text3d( x = 1:dim[1], y = rep(0, dim[1]), z = rep(0, dim[1]), texts = lvls[[1]])
-# text3d( x = rep(0, dim[2]), y = 1:dim[2], z = rep(0, dim[2]), texts = lvls[[2]])
-# text3d( x = rep(0, dim[3]), y = rep(0, dim[3]), z = 1:dim[3], texts = lvls[[3]])
-
-# text3d( x = 1:dim[1], y = rep(dim[2]+1, dim[1]), z = rep(dim[3]+1, dim[1]), texts = lvls[[1]])
-# text3d( x = rep(dim[1]+1, dim[2]), y = 1:dim[2], z = rep(dim[3]+1, dim[2]), texts = lvls[[2]])
-# text3d( x = rep(dim[1]+1, dim[3]), y = rep(dim[2]+1, dim[3]), z = 1:dim[3], texts = lvls[[3]])
-# }
-# }
-# apply(x2,1,function(z){
-# s <- ((z[4]/maxfreq)^(1/3))/2
-# if(shape == "cube"){
-# shade3d( translate3d( cube3d(col=col.array[z[1], z[2], z[3]], trans = scaleMatrix(s,s,s)), z[1], z[2], z[3]), alpha = alpha )	
-# }
-# if(shape == "octagon"){
-# shade3d( translate3d( octahedron3d(col=col.array[z[1], z[2], z[3]], trans = scaleMatrix(s,s,s)), z[1], z[2], z[3]), alpha = alpha )	
-# }
-
-# })
-
-
-# return(invisible(TRUE))
-
-# }
-
-# cfluctile3d = function(x, xc = NULL, yc = NULL, zc = NULL, shape ="cube", col = c("darkgrey","red"), alpha = c(0.8,0.2),...){
-
-# if(shape %in% c("o","oct","octahedron")){
-# shape <- "octagon"
-# }
-# if(is.null(xc)){
-# xc <- attr(x,"xc")
-# if(is.null(xc)){
-# xc <- as.integer(attr(x,"grps")[[1]])
-# }	
-# }
-# if(is.null(yc)){
-# yc <- attr(x,"yc")	
-# if(is.null(yc)){
-# yc <- as.integer(attr(x,"grps")[[2]])
-# }
-# }
-# if(is.null(zc)){
-# zc <- attr(x,"zc")
-# if(is.null(zc)){
-# zc <- as.integer(attr(x,"grps")[[3]])
-# }	
-# }
-# stopifnot( all( c(is.null(xc),is.null(yc),is.null(zc)) == FALSE))
-
-# colA <- col[1]
-# colB <- ifelse(length(col) > 1, col[2], "red")
-# alphaA <- alpha[1]
-# alphaB <- ifelse(length(alpha) > 1, alpha[2], 0.2)
-
-# if(!is.data.frame(x)){
-# dim <- dim(x)
-# x <- subtable(as.data.frame(as.table(x)),1:3,allfactor=TRUE)	
-
-# }else{
-# dim <- sapply(x,nlevels)[1:3]
-# x <- subtable(x,1:3,allfactor=TRUE)
-
-# }
-# ncl <- nlevels(as.factor(xc))
-# xc <- lapply(1:ncl, function(v){
-# which(xc == v)
-# })
-# yc <- lapply(1:ncl, function(v){
-# which(yc == v)
-# })
-# zc <- lapply(1:ncl, function(v){
-# which(zc == v)
-# })
-
-# stopifnot(length(xc) == length(yc) & length(yc) == length(zc))
-# fluctile3d(x, col = colA, shape = shape, alpha = alphaA)
-# mapply(function(s1,s2,s3){
-# r1 <- diff(range(s1))+1
-# c1 <- mean(range(s1))
-# r2 <- diff(range(s2))+1
-# c2 <- mean(range(s2))
-# r3 <- diff(range(s3))+1
-# c3 <- mean(range(s3))
-# shade3d( translate3d( cube3d(col=colB, trans = scaleMatrix(r1/1.98,r2/1.98,r3/1.98)), c1, c2, c3), alpha = alphaB )	
-
-# }, s1 = xc, s2 = yc, s3 = zc)
-# return(invisible(TRUE))
-# }
-
-
-# f3dcol = function(x, dims = c(1,2), col.fun = rainbow_hcl, col.opt = list()){
-# #require(colorspace)
-# stopifnot( inherits(x, "array") || inherits(x, "table") )
-# nc <- prod(dim(x)[dims])
-# colv <- col.fun(nc)
-
-# if(length(dims) == 1){
-# if(dims == 1) colv <- rep(colv, times=prod(dim(x)[2:3]))
-# if(dims == 2) colv <- rep(colv, each = dim(x)[1], times=dim(x)[3])
-# if(dims == 3) colv <- rep(colv, each=prod(dim(x)[1:2]))
-# }
-# if(length(dims) == 2){
-# if(! 1 %in% dims) colv <- rep(colv, each=dim(x)[1])
-# if(! 2 %in% dims){
-# tmp <- NULL
-# for( i in 1:dims[2] ){#1?
-# tmp <- rep(colv[(1:dim(x)[1]) + (i-1)*dim(x)[1]], times = dim(x)[2])
-# }
-# colv <- tmp
-# rm(tmp)
-# } 
-# if(! 3 %in% dims) colv <- rep(colv, times=dim(x)[3])
-# }
-# dim(colv) <- dim(x)
-# return(colv)
-# }
-
-
-
-# pfluctile <- function(x, freqvar = "Freq", ... ){
-# if(inherits(x,"table")){
-# x <- as.data.frame(x)
-# }
-# if(!(freqvar %in% names(x))){
-# freqvar <- NULL
-# }
-# nd <- ncol(x) - !is.null(freqvar)
-# names(x)[names(x) == freqvar] <- "Freq"
-
-# #border=c(0.1,0.02,0.02,0.1)
-
-# wh <- sapply(x,function(z) nlevels(as.factor(z)))
-
-# mat.layout <- grid.layout(nrow = nd , ncol = nd , widths = wh, heights = wh)
-# grid.newpage()
-# vp.mat <- viewport(layout = mat.layout)
-# pushViewport(vp.mat)
-
-# for(i in 1:(nd-1)){
-# tt <- xtabs(Freq ~ x[,i]+I(x[,i]),data=x)
-# fluctile(optile(tt, iter=100),vp=c(i,i), label=c(i==1,i==1),...)
-# for(j in (i+1):nd){
-
-# tt <- xtabs(Freq ~ x[,i]+x[,j],data=x)
-# fluctile(tt <- optile(tt, iter=100),vp=c(i,j),label=c(j==1,i==1),...)
-# fluctile(t(tt),vp=c(j,i), label=c(i==1,j==1),...)
-# }
-# }
-# tt <- xtabs(Freq ~ x[,nd]+I(x[,nd]),data=x)
-# fluctile(optile(tt, iter=100),vp=c(nd,nd), label=FALSE)
-
-# popViewport()
-
-# return(invisible(TRUE))
-# }
-
+#Death rates mosaics
+addedCols <- VADeathRate
+addedCols$Place <- c("Rural", "Rural", "Rural", "Rural", "Rural", "Rural", "Rural", "Rural", "Rural", "Rural", "Urban", "Urban", "Urban", "Urban", "Urban", "Urban", "Urban", "Urban", "Urban", "Urban")
+addedCols$Sex <- c("Male", "Male", "Male", "Male", "Male", "Female", "Female", "Female", "Female", "Female", "Male", "Male", "Male", "Male", "Male", "Female", "Female", "Female", "Female", "Female")
+par(mfrow=c(1,3))
+m1 <- mosaicplot(xtabs(Freq ~ Sex, data=addedCols), main="", color = "#0c9cac", border = "black")
+m2 <- mosaicplot(xtabs(Freq ~ Sex + Var1, data=addedCols),main="", color = "#0c9cac", border = "black")
+m3 <- mosaicplot(xtabs(Freq ~ Sex + Var1 + Place, data=addedCols),main="", color = "#0c9cac", border = "black")
 
 data(Zoo, package="seriation")
-mosaic(table(select(Zoo, c(hair, eggs:backbone))))
 fluctile(table(select(Zoo, c(hair, eggs:backbone))),label=FALSE)
+```
+
+```{r, echo=FALSE, message=FALSE}
+library(UsingR)
+library("gridExtra")
+library("ggplot2")
+library("vcd")
+library("vcdExtra")
+library(visdat)
+library("purrr")
+library(dplyr)
+require(lattice)
+library(seriation)
+library(MASS)
+
+```
+
+
+### 2. Missing values and Outliers
+### Missing
+***
+ 
+   
+   In aceasta parte a proiectului am construit un set de date in care este reprezentat PIB-ul pe fiecare Tara, investitia in sanatate si educatie respectiv HDI, iar tarile sunt impartite pe continente.
+   
+   Urmatorul cod ne permite incarcarea datelor 
+   
+```{r}
+   data<-read.csv("data.csv",header=TRUE)
+date<-data.frame(Indicator=data$Series.Code,
+                 Tara=data$Country.Name,
+                 Valoare=data$X2015..YR2015.
+                 )
+                 
+Continent<-data$Continent
+HDI<- data$HDI
+date<-reshape(date,idvar="Tara",timevar = "Indicator",direction="wide")
+date<-data.frame(Tara=date$Tara,
+                 PIBperCapita=date$Valoare.NY.GDP.PCAP.PP.CD,
+                 CheltEducatie=date$Valoare.SE.XPD.TOTL.GD.ZS,
+                 CO2perCapita=date$Valoare.EN.ATM.CO2E.PC,
+                 CheltSanatate=date$Valoare.SH.XPD.GHED.GD.ZS
+                 )
+date<-data.frame(date,Continent)
+date<-data.frame(date,HDI)               
+   
+```
+   
+   Am prelucrat datele introduse deoarece contine valori nule si valori aberante, inlocuindule cu  valoarea lipsa.
+```{r}
+   for( i in 1:nrow(date)){
+  for(j in 1:ncol(date)){
+    if(date[i,j]==""||date[i,j]==".."){
+      date[i,j]<-NA
+    }
+  }
+}
+```
+   Functia Care verifica valorile lipsa
+```{r}
+vis_miss(date)
+```
+
+ Elimina valorile lipsa folosind functia _na.omit()_. 
+ 
+```{r}
+date<-na.omit(date)
+vis_miss(date)
+```
+
+### Outliers
+***
+
+Transformam datele in valori numerice pentru a putea fi scalate
+```{r}
+date$CO2perCapita<-as.numeric(date$CO2perCapita)
+date$HDI<-as.numeric(date$HDI)
+date$CheltEducatie<-as.numeric(date$CheltEducatie)
+date$CheltSanatate<-as.numeric(date$CheltSanatate)
+date$PIBperCapita<-as.numeric(date$PIBperCapita)
+```
+
+Pentru prima parte dorim sa verificam daca exista Outliers pentru PIB pentru toate tarile.
+
+Afisam box plot pentru PIB pe toate tarile
+```{r}
+ggplot(date, aes("PIB all Continent", y=PIBperCapita)) +
+  xlab("") + geom_boxplot() +
+  scale_x_discrete(breaks=NULL)
+
+```
+
+Comparam pibul pe fiecare continent cu pib-ul general folosind functia _grid.arrange()_
+
+.
+
+```{r}
+all <- ggplot(date, aes("PIB all Continent", y=PIBperCapita)) +
+  xlab("") + geom_boxplot() +
+  scale_x_discrete(breaks=NULL)
+
+continent1<-ggplot(date, aes(x=Continent, y=PIBperCapita)) +
+  geom_boxplot() + xlab("") 
+grid.arrange(all,continent1, nrow=1,widths=c(1,2))
+
+```
+
+
+Analizam raportul cheluieli pentru sanatate si cheltuieli pentru educatia 
+
+```{r}
+educatie <- ggplot(date, aes(y=CheltEducatie, x=Continent)) +
+  xlab("") + geom_boxplot() +
+  scale_y_discrete(breaks=NULL)
+
+sanatate <- ggplot(date, aes(y=CheltSanatate, x=Continent)) +
+  xlab("") + geom_boxplot() +
+  scale_y_discrete(breaks=NULL)
+grid.arrange(educatie,sanatate)
+
+
+
+```
+
+In final pentru a vedea investitia in sanatate respectiv educate din PIB pentru fiecare Tara  vom afisa 2 grafice. Primul ne masoara in functie de PIB pentru fiecare tara, iar cel de al doilea ne afiseaza raportul tarilor pentru fiecare continent. Se observa ca majoritatea tarilol investec in mod egal atat in sanatate cat si in educatie.
+
+
+```{r}
+ggplot(date)+aes(x=CheltSanatate,y=CheltEducatie ,colour=PIBperCapita )+geom_point()
+
+```
+```{r}
+ggplot(data=date)+ aes(x=CheltSanatate,y=CheltEducatie,colour=Continent) + geom_point() +
+  geom_density2d(bins=5, col="red")
+
+```
+1). 
+<center>
+![](ExercitiiImagini/OutEx1.jpg)
+</center>
+
+```{r}
+library(survival)
+date<-lung
+
+
+vis_miss(date)
+
+```
+
+Exista valori lipsa pentru mai multe variabile, dar cele mai multe se gasesc la variabila "meal.cal", urmata de variabila
+"wt.loss" si sunt putine observatii care au aceste valori lipsa pentru ambele variabile in acelasi timp
+Avem cate o valoare lipsa si pentru variabilele "inst, ph.ecog si ph.kamo", dar aceasta nu lipseste pentru aceeasi observatie
+
+<center>
+
+![](ExercitiiImagini/OutEx3.jpg)
+</center>
+Figure 9.7
+<center>
+![](ExercitiiImagini/Fig9.7.jpg)
+</center>
+Figure 9.8
+<center>
+![](ExercitiiImagini/Fig9.8.jpg)
+</center>
+
+
+Observam ca in fig 9.7 variabila "carat" prezinta foarte multi outlieri cu valori peste limita superioara,
+deci aceasta variabila este inclinata spre dreapta.
+Fig 9.8 evidentiaza prezenta outlierilor si modul in care graficul se schimba atunci cand este redimensionat.
+In prima parte, cand dimensiunea era mai mare, prezenta valorilor extreme foarte mari atrag atentia si acele 
+observatii par suspecte, pe cand, in a doua parte, valorile nu mai par foarte diferite unele de altele, facand ca
+graficul sa para un grafic obisnuit cu o variatie foarte mica a valorilor.
+Prezenta outlierilor atat pt varibila "carat" cat si pentru variabila "witdh" se poate explica prin faptul ca
+acest set de date contine foarte multe observatii si este normal sa existe si multe valori atipice. 
+<center>
+![](ExercitiiImagini/OutEx5.jpg)
+</center>
+```{r output.lines=4}
+
+
+data5<-galton
+
+boxplot(data5)
+
+```
+ 
+ a. Exista valori pe care le consideram outlieri pentru variabila "Inaltime parinti"
+ 
+ ```{r}
+ ggplot(data5, aes( parent,child)) + geom_point() + geom_density2d()
+ ```
+
+ b. Graficul densitatii bivariate arata faptul ca exista mai multi outlieri 
+ 
+ <center>
+![](ExercitiiImagini/OutEx8.jpg)
+</center>
+
+
+
+ Am putea considera outlieri cele 2 puncte din partea dreapta jos a graficului deoarece acestea sunt departe de
+celelalte puncte ale graficului si se observa si o distanta considerabila intre ele.
+
+ <center>
+![](ExercitiiImagini/OutEx10.jpg)
+</center>
+
+```{r}
+
+
+attach(Boston)
+
+boxplot(Boston$tax)
+boxplot.stats(Boston$tax)
+hist(Boston$tax)
+
+```
+
+Mai util este boxplotul deoarece arata clar daca avem sau nu outlieri. Histograma arata faptul ca ar exista siniste valori mai mari, dar acestea nu sunt considerate ca fiind outlieri, deci ne poate induce in eroare.
+
+```{r}
+
+
+#names(Boston) <- c("crim", "zn", "indus", #"chas","nox","rm","age","dis","rad","tax","ptratio","black",
+#                 "lstat", "medv")
+#ggparcoord(data = Boston, columns = c(1:14), scale="uniminmax") + xlab("") + ylab("")
+
+
+```
+
+## Chapter 7 exercises 
+
+ <center>
+![](ExercitiiImagini/MultiVarEx1.jpg)
+</center>
+```{r, message=FALSE}
+##1
+#a
+library("vcdExtra")
+cancer <- as.data.frame(Cancer)
+
+hist1 <- ggplot(cancer, aes(Grade, Freq, fill=Grade, width=Freq*0.01)) +
+  geom_bar(stat="identity") +
+  ylab("Death rate")
+
+hist2 <- ggplot(cancer, aes(Center, Freq, fill=Center, width=Freq*0.01)) +
+  geom_bar(stat="identity") +
+  ylab("Death rate")
+
+grid.arrange(hist1, hist2)
+
+#b
+doubledecker(Survival ~ Center + Grade, data = Cancer,
+             gp = gpar(fill = c("#0caa00","#c70b00")))
+
+doubledecker(Survival ~ Grade + Center, data = Cancer,
+             gp = gpar(fill = c("#0caa00","#c70b00")))
+
+#The order does not matter because they are grouped in the same way and the results are the same
+
+```
+ <center>
+![](ExercitiiImagini/MultiVarEx2.jpg)
+</center)>
+```{r, message=FALSE}
+##2
+#This mosaic represents the rate of survival based on the age of the crew (child, adult), 
+#as we can see half of the childs died in accident and half survied,
+#also, a lot more adults died 
+titanic <- as.data.frame(Titanic)
+mosaicplot(xtabs(Freq ~  Age + Survived, data=titanic),main="", color = "#0c9cac", border = "black")
+
+```
+ <center>
+![](ExercitiiImagini/MultiVarEx3.jpg)
+</center)>
+
+```{r, message=FALSE}
+##3
+#As we can see, no white person who had a black victim received death penalty 
+#Also, a few black people who aggressed another black person received a death penalty
+#Since there are more white people, of course the largest block represents white vs white, but surprisingly,
+#they received no death sentence 
+library("asbio")
+library("catdata")
+data(death.penalty, package="asbio")
+data(deathpenalty, package="catdata")
+
+mosaicplot(xtabs(count ~  d.race + v.race + verdict, data=death.penalty),main="", color = "#0c9cac", border = "black")
+
+```
+
+
+ <center>
+![](ExercitiiImagini/MultiVarEx4.jpg)
+</center)>
+```{r, message=FALSE}
+##4
+#UCBAdmissions
+uniAdmission <- as.data.frame.table(UCBAdmissions)
+#Admission depending on dept and gender
+doubledecker(Admit ~ Dept + Gender, data = UCBAdmissions, margins = c(0,6, 3, 0), keep_aspect_ratio = TRUE, gp = gpar(fill = c("#0caa00","#c70b00")))
+
+```
+
+ <center>
